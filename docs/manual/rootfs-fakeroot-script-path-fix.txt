@@ -1,0 +1,46 @@
+[[rootfs-fakeroot-script-path-fix]]
+=== rootfs generation with a PATH containing spaces
+
+==== Symptom
+
+Generating the root filesystem image can fail at the very last step:
+
+----
+/bin/bash: -c: line 1: syntax error near unexpected token `('
+make: *** [fs/ext2/ext2.mk:56: .../rootfs.ext2] Error 2
+----
+
+==== Cause
+
+Buildroot 2015.08 defines +BR_PATH+ with embedded double quotes so that
+host PATH entries containing spaces survive in recipes:
+
+----
+BR_PATH = "$(HOST_DIR)/bin:...:$(PATH)"
+----
+
++fs/common.mk+ used to write the per-fstype command into the fakeroot
+script with +echo "$(...)"+.  The quotes belonging to +BR_PATH+ closed the
++echo+ string early, so the PATH value was pasted into the shell command
+unquoted.  On hosts whose PATH contains shell metacharacters - for example
+the WSL entry +/mnt/c/Program Files (x86)+ - the generated +echo+ line
+becomes a shell syntax error.
+
+==== Fix
+
++fs/common.mk+ appends the command with a quoted heredoc
++(<< 'ROOTFS_CMD_EOF'+) instead of +echo+.  Heredoc content is not parsed by
+the intermediate shell, so the command is written verbatim and is only
+interpreted when the fakeroot script runs - where +PATH="..." mke2img ...+
+is valid shell.  This works for every +ROOTFS_*_CMD+ (including the
+multi-line iso9660/jffs2/ubi commands and the quoted ext2 label).
+
+Note: filtering space-bearing entries out of PATH in an external wrapper
+script (as +board/qemu/vexpress/README-3.4.110.md+ recommends) also works;
+the +fs/common.mk+ fix makes a plain +make O=...+ work regardless of the
+login environment.  A defensive way to run the build is:
+
+----
+CLEAN_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v ' ' | paste -sd:)
+make O=/workplace/project/lab/build_target PATH="$CLEAN_PATH"
+----

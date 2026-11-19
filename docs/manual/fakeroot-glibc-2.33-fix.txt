@@ -1,0 +1,38 @@
+[[fakeroot-glibc-2.33-fix]]
+=== fakeroot 1.18.4 and modern glibc
+
+==== Symptom
+
+Building +host-fakeroot+ can fail with:
+
+----
+config.h: #define SETGROUPS_SIZE_TYPE unknown
+libfakeroot.c: error: '_STAT_VER' undeclared
+----
+
+Two configure tests also fail against GCC 14: the +setgroups+ argument
+probing program omits +<stdio.h>+ (implicit declaration of +puts+ becomes an
+error), so the type is recorded as +unknown+.
+
+==== Cause
+
+* glibc 2.33 removed the +_STAT_VER+ macro and the +__xstat*+ versioned
+  entry points that fakeroot 1.18.4 wraps;
+* the configure probes predate GCC 14's implicit-declaration errors.
+
+==== Fix
+
++package/fakeroot/fakeroot.mk+ bumps fakeroot from 1.18.4 to 1.32.1, the
+version already validated by upstream Buildroot, which contains the glibc
+2.33 compatibility work and updated configure probes.  Process capabilities
+detection is forced off so no host libcap is required; ACL support stays
+optional (configure falls back gracefully when the host has no libacl).
+
++package/fakeroot/fakeroot.hash+ carries the new checksum.
+
+To rebuild:
+
+----
+make O=/workplace/project/lab/build_target host-fakeroot-dirclean
+make O=/workplace/project/lab/build_target host-fakeroot
+----

@@ -1,0 +1,30 @@
+[[e2fsprogs-glibc-sysmacros-fix]]
+=== e2fsprogs 1.42.13 and modern glibc sysmacros
+
+==== Symptom
+
+Building +host-e2fsprogs+ can fail in +lib/blkid/devname.c+ with:
+
+----
+error: implicit declaration of function ‘makedev’
+----
+
+==== Cause
+
+Newer glibc versions no longer expose +major()+, +minor()+ and +makedev()+
+implicitly through +<sys/types.h>+.  e2fsprogs 1.42.13 only includes
++<sys/mkdev.h>+ conditionally and therefore misses the declarations on Linux
+hosts.
+
+==== Fix
+
++package/e2fsprogs/0002-include-sys-sysmacros.h-as-needed.patch+ backports the
+upstream e2fsprogs fix.  It includes +<sys/sysmacros.h>+ in every affected
+source file when +HAVE_SYS_SYSMACROS_H+ is available.
+
+To rebuild the host package:
+
+----
+make O=/workplace/project/lab/build_target host-e2fsprogs-dirclean
+make O=/workplace/project/lab/build_target host-e2fsprogs
+----

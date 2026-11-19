@@ -1,0 +1,28 @@
+fseterr: fix detection of glibc FILE flag macros
+
+glibc 2.28 dropped the public _IO_ftrylockfile macro, and this glibc
+reports __GNU_LIBRARY__ == 6 (the "== 1" test targets ancient libc5), so
+the glibc branch of fseterr.c was never selected and configure/make
+failed with:
+
+  error: #error "Please port gnulib fseterr.c to your platform! ..."
+
+_IO_EOF_SEEN and _IO_ERR_SEEN are still provided by <stdio.h>, so also
+test _IO_EOF_SEEN, exactly as current gnulib does.
+
+Signed-off-by: jeep <jeep@local>
+
+--- bison-3.0.4.orig/lib/fseterr.c	2015-01-05 00:43:50.000000000 +0800
++++ bison-3.0.4/lib/fseterr.c	2026-10-01 21:39:10.262426485 +0800
+@@ -29,7 +29,10 @@
+   /* Most systems provide FILE as a struct and the necessary bitmask in
+      <stdio.h>, because they need it for implementing getc() and putc() as
+      fast macros.  */
+-#if defined _IO_ftrylockfile || __GNU_LIBRARY__ == 1 /* GNU libc, BeOS, Haiku, Linux libc5 */
++#if defined _IO_EOF_SEEN || defined _IO_ftrylockfile || __GNU_LIBRARY__ == 1
++  /* GNU libc, BeOS, Haiku, Linux libc5.
++     glibc 2.28 no longer exposes _IO_ftrylockfile; _IO_EOF_SEEN is still
++     provided by <stdio.h> and selects the same glibc code path.  */
+   fp->_flags |= _IO_ERR_SEEN;
+ #elif defined __sferror || defined __DragonFly__ /* FreeBSD, NetBSD, OpenBSD, DragonFly, Mac OS X, Cygwin */
+   fp_->_flags |= __SERR;

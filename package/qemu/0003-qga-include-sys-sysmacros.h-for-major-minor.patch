@@ -1,0 +1,19 @@
+qga: include sys/sysmacros.h for major and minor
+
+Recent glibc versions no longer expose major() and minor() through
+sys/types.h.  Include the header explicitly when building the POSIX guest
+agent implementation.
+
+Signed-off-by: jeep <jeep@local>
+
+diff -Nura qemu-2.3.0.orig/qga/commands-posix.c qemu-2.3.0/qga/commands-posix.c
+--- qemu-2.3.0.orig/qga/commands-posix.c	2015-04-27 21:46:48.000000000 +0000
++++ qemu-2.3.0/qga/commands-posix.c	2026-10-01 00:00:00.000000000 +0000
+@@ -23,6 +23,7 @@
+ #include <string.h>
+ #include <sys/stat.h>
+ #include <inttypes.h>
++#include <sys/sysmacros.h>
+ #include "qga/guest-agent-core.h"
+ #include "qga-qmp-commands.h"
+ #include "qapi/qmp/qerror.h"

@@ -1,0 +1,45 @@
+[[qemu-glibc-sysmacros-fix]]
+=== QEMU 2.3.0 and modern glibc hosts
+
+==== Symptom
+
+Building +host-qemu+ can fail in several places against hosts with glibc
+2.28 or newer:
+
+----
+qga/commands-posix.c: implicit declaration of function 'major'/'minor'
+linux-user/strace.c: implicit declaration of function 'major'/'minor'
+user-exec.c: error: invalid use of undefined type 'struct ucontext'
+linux-user/syscall.c: static declaration of 'gettid' follows non-static declaration
+linux-user/syscall.c: implicit declaration of function 'stime'
+----
+
+==== Cause
+
+QEMU 2.3.0 predates a series of glibc cleanups:
+
+* glibc 2.28+ no longer exports +major()+/+minor()+ implicitly through
+  +<sys/types.h>+ (they live in +<sys/sysmacros.h>+);
+* glibc 2.30 removed the +struct ucontext+ name (only +ucontext_t+ remains)
+  and declares +gettid()+ itself;
+* glibc 2.31 removed +stime()+ from the public API.
+
+==== Fix
+
+Two patches under +package/qemu/+:
+
+* +0003-qga-include-sys-sysmacros.h-for-major-minor.patch+ includes
+  +<sys/sysmacros.h>+ in the POSIX guest agent;
+* +0004-linux-user-fix-modern-glibc-build.patch+ uses +ucontext_t+, renames
+  QEMU's private helper to +qemu_gettid()+, implements the target +stime+
+  case with +syscall(SYS_settimeofday, ...)+, and includes
+  +<sys/sysmacros.h>+ in +linux-user/strace.c+.
+
+To rebuild the host package:
+
+----
+make O=/workplace/project/lab/build_target host-qemu-dirclean
+make O=/workplace/project/lab/build_target host-qemu
+----
+
+Upgrade QEMU to a maintained release before removing these patches.

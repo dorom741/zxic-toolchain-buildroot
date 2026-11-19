@@ -1,0 +1,31 @@
+gdate: disable format-nonliteral warning around g_date_strftime
+
+GCC 14 diagnoses the dynamic format passed to strftime() as an error when
+GLib enables -Werror=format-nonliteral.  Keep the warning disabled for the
+whole function without changing its runtime behavior.
+
+Backported from Python-independent GLib compatibility fixes:
+https://github.com/frida/pkg-config/blob/master/glib-patches/gcc-format-nonliteral-2.patch
+
+Adapted for glib-2.44.1.
+
+Signed-off-by: jeep <jeep@local>
+
+--- glib-2.44.1.orig/glib/gdate.c	2014-12-20 05:49:48.000000000 +0800
++++ glib-2.44.1/glib/gdate.c	2026-10-01 19:21:28.116137041 +0800
+@@ -2439,6 +2439,9 @@
+  *
+  * Returns: number of characters written to the buffer, or 0 the buffer was too small
+  */
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wformat-nonliteral"
++
+ gsize     
+ g_date_strftime (gchar       *s, 
+                  gsize        slen, 
+@@ -2549,3 +2552,5 @@
+   return retval;
+ #endif
+ }
++
++#pragma GCC diagnostic pop

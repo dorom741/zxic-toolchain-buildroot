@@ -1,0 +1,19 @@
+configure: include stdlib.h in widechar test
+
+The wide-character feature test calls exit() without including stdlib.h.
+GCC 14 treats implicit function declarations as errors, so the test fails,
+HAVE_WIDECHAR stays undefined and column.c then misses the wide-char API
+(wcspbrk, wprintf).
+
+Signed-off-by: jeep <jeep@local>
+
+--- util-linux-2.26.2.orig/configure.ac	2015-04-30 17:55:42.630681037 +0800
++++ util-linux-2.26.2/configure.ac	2026-10-01 19:52:49.258234091 +0800
+@@ -559,6 +559,7 @@
+ #include <wchar.h>
+ #include <wctype.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ ]], [[
+   wchar_t wc;
+   wint_t w;

@@ -1,0 +1,36 @@
+[[gcc-host-cxx11-fix]]
+=== GCC 4.9.3 and modern host C++ compilers
+
+==== Symptom
+
+Building +host-gcc-initial+ can fail in +gcc/reload1.c+ with:
+
+----
+error: use of an operand of type ‘bool’ in ‘operator++’ is forbidden in C++17
+----
+
+==== Cause
+
+The Buildroot configuration uses GCC 4.9.3.  Its host-side C++ sources were
+written before C++17 became the default mode of modern host compilers.  The
+source uses operations that are accepted in C++11 but rejected in C++17.
+Its generated C++ name lookup table also conflicts with modern GCC's handling
+of the +gnu_inline+ attribute.
+
+==== Fix
+
++package/gcc/gcc.mk+ adds +-std=gnu++11+ to +HOST_GCC_COMMON_CONF_ENV+.  The
+project also carries +package/gcc/4.9.3/130-fix_build_with_gcc-6.patch+, which
+regenerates the C++ name lookup table without the incompatible inline
+declarations.  These changes apply to the host compiler only; target compiler
+language flags are unchanged.
+
+To rebuild the affected host compiler:
+
+----
+make O=/workplace/project/lab/build_target host-gcc-initial-dirclean
+make O=/workplace/project/lab/build_target host-gcc-initial
+----
+
+Remove this override when the configured GCC version is upgraded to a release
+whose host sources support the current default C++ standard.

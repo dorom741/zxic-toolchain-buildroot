@@ -91,6 +91,10 @@ HOST_LIBGLIB2_CONF_OPTS = \
 	--disable-gcov \
 	--disable-modular-tests
 
+# GLib 2.44.1 enables -Werror for format checks that GCC 14 diagnoses in
+# legacy, valid code. Keep these diagnostics non-fatal for the host build.
+HOST_LIBGLIB2_CONF_ENV += CFLAGS="$(HOST_CFLAGS) -Wno-error=format-overflow"
+
 LIBGLIB2_CONF_OPTS += --disable-modular-tests
 ifeq ($(BR2_TOOLCHAIN_HAS_THREADS),)
 LIBGLIB2_CONF_OPTS += --with-threads=none --disable-threads

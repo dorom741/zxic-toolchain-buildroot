@@ -1,0 +1,57 @@
+[[flex-implicit-declaration-fix]]
+=== flex 2.5.37 on GCC 14
+
+==== Symptom
+
+Building +host-flex+ can fail with:
+
+----
+scanflags.c: In function 'sf_init':
+scanflags.c:64:9: error: implicit declaration of function 'lerrsf_fatal'
+----
+
+After adding the missing prototype, the same build instead reports:
+
+----
+scanflags.c:65:13: error: passing argument 2 of 'lerrsf_fatal' makes pointer from integer without a cast [-Wint-conversion]
+----
+
+==== Cause
+
+Two facts collide:
+
+* +lerrsf_fatal()+ is defined in +misc.c+ (K&R style) and used by
+  +filter.c+ and +scanflags.c+, but +flexdef.h+ only declared the two
+  neighbouring helpers +lerrif()+ and +lerrsf()+.  GCC 14 promotes
+  +-Wimplicit-function-declaration+ to an error.
+* The function is genuinely variadic: +filter.c+ passes a string
+  (+_("%s failed")+ → +char *+) while +scanflags.c+ passes a long
+  (+_("%ld of stack")+ → +(long)+).  It only ever worked because the
+  definition forwarded its single argument to the variadic +snprintf()+,
+  so no prototype could ever have matched both call sites.
+
++lerrsf+ itself is not affected - all of its callers use +%s+ with a
+string, matching its +(const char *, const char *)+ prototype.
+
+==== Fix
+
++package/flex/0002-flexdef-declare-lerrsf_fatal.patch+:
+
+* declares +void lerrsf_fatal (const char *, ...)+ next to +lerrsf+ in
+  +flexdef.h+;
+* rewrites the K&R definition in +misc.c+ as an ANSI variadic function
+  using +va_list+ / +vsnprintf()+ (K&R definitions cannot take +...+).
+  Semantics are unchanged: the old code already passed its argument
+  straight to variadic +snprintf()+.
+
+A full +gcc -fsyntax-only -Werror=implicit-function-declaration+ sweep
+over every +.c+ in +flex-2.5.37+ confirms these are the only implicit
+declarations present.
+
+Rebuild (use a PATH without space-bearing entries):
+
+----
+CLEAN_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v ' ' | paste -sd:)
+make O=/workplace/project/lab/build_target PATH="$CLEAN_PATH" host-flex-dirclean
+make O=/workplace/project/lab/build_target PATH="$CLEAN_PATH" host-flex
+----

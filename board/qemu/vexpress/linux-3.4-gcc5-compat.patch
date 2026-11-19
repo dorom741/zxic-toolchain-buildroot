@@ -1,0 +1,35 @@
+From: Buildroot
+Subject: [PATCH] Linux: 3.4兼容GCC 5及以上版本
+
+Linux 3.4缺少GCC 6及以上对应的compiler-gcc*.h，并假设GCC遵循GNU89 inline和旧ARM寄存器分配约定。为旧内核显式恢复这些兼容行为。
+
+---
+ Makefile                             | 1 +
+ arch/arm/include/asm/uaccess.h      | 3 +--
+ include/linux/compiler-gcc.h        | 4 ++++
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -371,0 +372,1 @@
++KBUILD_CFLAGS += -fgnu89-inline
+
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -151,1 +151,2 @@
+-		__asmeq("%0", "r0") __asmeq("%2", "r2")			\
++		__asmeq("%0", "r0")					\
++		"mov r2, %2\n\t" \
+
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -106 +106,5 @@
+-#include gcc_header(__GNUC__)
++#if __GNUC__ >= 5
++#include <linux/compiler-gcc5.h>
++#else
++#include gcc_header(__GNUC__)
++#endif

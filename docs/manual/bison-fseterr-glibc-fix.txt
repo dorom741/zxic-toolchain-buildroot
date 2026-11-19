@@ -1,0 +1,47 @@
+[[bison-fseterr-glibc-fix]]
+=== bison 3.0.4 and modern glibc
+
+==== Symptom
+
+Building +host-bison+ can fail while compiling the bundled gnulib:
+
+----
+lib/fseterr.c:77:3: error: #error "Please port gnulib fseterr.c to your platform! Look at the definitions of ferror and clearerr on your system, then report this to bug-gnulib."
+----
+
+==== Cause
+
++lib/fseterr.c+ selects the glibc code path with
+
+----
+#if defined _IO_ftrylockfile || __GNU_LIBRARY__ == 1
+----
+
+On glibc 2.28 and newer +_IO_ftrylockfile+ is no longer exposed, and
+glibc reports +__GNU_LIBRARY__ 6+ (the +== 1+ test targets ancient libc5),
+so neither condition holds and the fallback +#error+ is triggered.  The
+bit it wants to set is fine: +<stdio.h>+ still defines +_IO_EOF_SEEN+
+(0x0010) and +_IO_ERR_SEEN+ (0x0020).
+
+==== Fix
+
++package/bison/0001-fseterr-support-glibc-without-IO-ftrylockfile.patch+
+also tests +_IO_EOF_SEEN+, which is exactly how current gnulib/bison
+detects glibc (bison 3.8.2 ships
++#if defined _IO_EOF_SEEN || defined _IO_ftrylockfile || __GNU_LIBRARY__ == 1+).
+Only +lib/fseterr.c+ refers to these macros in bison 3.0.4, so this is a
+single-file change; the tarball, version and hash are untouched.
+
+Rebuild (use a PATH without space-bearing entries; Buildroot's scripts
+choke on Windows mount points such as +/mnt/c/Program Files+):
+
+----
+CLEAN_PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v ' ' | paste -sd:)
+make O=/workplace/project/lab/build_target PATH="$CLEAN_PATH" host-bison-dirclean
+make O=/workplace/project/lab/build_target PATH="$CLEAN_PATH" host-bison
+----
+
+Upgrading bison to 3.8.2 would also clear this, but carries a larger
+change surface in a 2015.08 tree (new hash, +BISON_MAKE=$(MAKE1)+
+parallelism workaround, +--enable-relocatable+, +ac_cv_libtextstyle=no+)
+and revalidates a much newer host tool.

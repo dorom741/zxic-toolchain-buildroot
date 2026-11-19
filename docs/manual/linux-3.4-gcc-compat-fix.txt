@@ -1,0 +1,37 @@
+[[linux-3.4-gcc-compat-fix]]
+=== Linux 3.4.110 with modern host compilers
+
+==== Symptom
+
+Building +linux+ can fail at different stages:
+
+----
+include/linux/compiler-gcc.h: No such file or directory
+scripts/dtc: multiple definition of `yylloc'
+----
+
+==== Cause
+
+Linux 3.4 predates GCC 6+ and GCC 10+:
+
+* it has no +compiler-gcc6.h+ and later, so the +gcc_header(__GNUC__)+
+  include fails; it also assumes GNU89 inline semantics and the legacy
+  ARM __put_user register convention;
+* GCC 10 defaults to +-fno-common+, while the bundled dtc defines
+  +YYLTYPE yylloc+ in both the parser and the lexer units.
+
+==== Fix
+
+Two board patches under +board/qemu/vexpress/+, referenced by
++BR2_LINUX_KERNEL_PATCH+ in the Buildroot configuration:
+
+* +linux-3.4-gcc5-compat.patch+ (compiler-gcc header fallback,
+  +-fgnu89-inline+, ARM __put_user operand fix);
+* +linux-3.4-dtc-yylloc.patch+ (keeps a single +yylloc+ definition).
+
+To rebuild only the kernel:
+
+----
+make O=/workplace/project/lab/build_target linux-dirclean
+make O=/workplace/project/lab/build_target linux
+----

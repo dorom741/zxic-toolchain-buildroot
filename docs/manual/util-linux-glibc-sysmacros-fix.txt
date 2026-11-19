@@ -1,0 +1,40 @@
+[[util-linux-glibc-sysmacros-fix]]
+=== util-linux 2.26.2 and modern glibc/GCC hosts
+
+==== Symptom 1: major/minor/makedev
+
+Building +host-util-linux+ can fail in several files (+lib/ismounted.c+,
++lib/sysfs.c+, +login-utils/sulogin-consoles.c+, +sys-utils/losetup.c+,
++disk-utils/sfdisk.c+) with implicit declaration errors for +major()+,
++minor()+ and +makedev()+.
+
+Cause: recent glibc versions stopped exporting these macros through
++<sys/types.h>+; they are provided by +<sys/sysmacros.h>+ only.  In this
+util-linux release only +lib/loopdev.c+ includes that header; the other
+compiled files rely on the old implicit declaration.
+
+Fix: +package/util-linux/0005-include-sys-sysmacros-for-major-minor.patch+
+adds an unconditional +<sys/sysmacros.h>+ include to every source file
+compiled by this configuration, following the existing pattern in
++lib/loopdev.c+.
+
+==== Symptom 2: wide-character API undeclared
+
++text-utils/column.c+ can fail with implicit declaration errors for
++wcspbrk()+ and +wprintf()+.
+
+Cause: the +HAVE_WIDECHAR+ configure test calls +exit()+ without including
++<stdlib.h>+.  GCC 14 treats implicit declarations as errors, so the test
+fails and +HAVE_WIDECHAR+ stays undefined; +widechar.h+ then falls back to
+narrow-char macros and the wide functions are left undeclared.
+
+Fix: +package/util-linux/0006-configure-add-stdlib-to-widechar-test.patch+
+adds +<stdlib.h>+ to the test in +configure.ac+.  This package runs
++autoreconf+, so the generated +configure+ is refreshed automatically.
+
+==== Rebuild
+
+----
+make O=/workplace/project/lab/build_target host-util-linux-dirclean
+make O=/workplace/project/lab/build_target host-util-linux
+----

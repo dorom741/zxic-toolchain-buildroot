@@ -1,0 +1,33 @@
+dtc: fix multiple definition of yylloc with -fno-common
+
+Both dtc-parser and dtc-lexer define YYLTYPE yylloc.  GCC 10 and newer
+default to -fno-common, so linking the host dtc fails with:
+
+  multiple definition of `yylloc'
+
+Keep the lexer definition and make the parser refer to it with extern.
+
+Signed-off-by: jeep <jeep@local>
+
+--- linux-3.4.110.orig/scripts/dtc/dtc-parser.y	2015-10-22 09:20:09.000000000 +0800
++++ linux-3.4.110/scripts/dtc/dtc-parser.y	2026-10-01 20:06:02.401476286 +0800
+@@ -24,7 +24,7 @@
+ #include "dtc.h"
+ #include "srcpos.h"
+ 
+-YYLTYPE yylloc;
++extern YYLTYPE yylloc;
+ 
+ extern int yylex(void);
+ extern void print_error(char const *fmt, ...);
+--- linux-3.4.110.orig/scripts/dtc/dtc-parser.tab.c_shipped	2015-10-22 09:20:09.000000000 +0800
++++ linux-3.4.110/scripts/dtc/dtc-parser.tab.c_shipped	2026-10-01 20:06:02.401642194 +0800
+@@ -72,7 +72,7 @@
+ #include "dtc.h"
+ #include "srcpos.h"
+ 
+-YYLTYPE yylloc;
++extern YYLTYPE yylloc;
+ 
+ extern int yylex(void);
+ extern void print_error(char const *fmt, ...);

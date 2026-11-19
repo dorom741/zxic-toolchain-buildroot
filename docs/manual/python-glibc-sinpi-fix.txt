@@ -1,0 +1,29 @@
+[[python-glibc-sinpi-fix]]
+=== Python 2.7.10 and modern glibc sinpi
+
+==== Symptom
+
+Building +host-python+ can fail while compiling +Modules/mathmodule.c+:
+
+----
+error: static declaration of ‘sinpi’ follows non-static declaration
+----
+
+==== Cause
+
+Recent glibc headers declare +sinpi()+ from the system math library.  Python
+2.7.10 also defines a private static helper named +sinpi()+, so the two
+declarations conflict.
+
+==== Fix
+
++package/python/019-fix-sinpi-conflict-with-libm.patch+ backports the Python
+2.7 fix that renames the private helper to +m_sinpi+.  The patch applies to
+both host and target Python builds without changing the public Python API.
+
+To rebuild the host package:
+
+----
+make O=/workplace/project/lab/build_target host-python-dirclean
+make O=/workplace/project/lab/build_target host-python
+----

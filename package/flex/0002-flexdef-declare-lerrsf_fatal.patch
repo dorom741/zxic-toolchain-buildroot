@@ -1,0 +1,51 @@
+flexdef/misc: make lerrsf_fatal variadic
+
+lerrsf_fatal() is defined in misc.c and used by filter.c and scanflags.c,
+but flexdef.h never declared it.  Declaring it with the K&R signature
+(const char *, const char *) does not work either: scanflags.c calls it
+with a long ("%ld of stack") while filter.c calls it with a string
+("%s failed"), so a declaration must be variadic.
+
+- add the missing prototype to flexdef.h (GCC 14 errors on implicit
+  declarations);
+- rewrite the K&R definition as an ANSI variadic function that formats
+  with vsnprintf(), which is what the old code did semantically (it
+  forwarded its single argument straight to the variadic snprintf()).
+  K&R definitions cannot take "...", hence the ANSI form.
+
+Signed-off-by: jeep <jeep@local>
+
+--- flex-2.5.37.orig/flexdef.h	2012-07-23 08:27:24.000000000 +0800
++++ flex-2.5.37/flexdef.h	2026-10-01 21:49:42.228722563 +0800
+@@ -908,6 +908,11 @@
+ /* Report an error message formatted with one string argument. */
+ extern void lerrsf PROTO ((const char *, const char *));
+ 
++/* Report a fatal error message formatted like a printf() format, and
++ * terminate.  Variadic: callers pass either a string (filter.c) or a
++ * long (scanflags.c), matching the format directives. */
++extern void lerrsf_fatal PROTO ((const char *, ...));
++
+ /* Spit out a "#line" statement. */
+ extern void line_directive_out PROTO ((FILE *, int));
+ 
+--- flex-2.5.37.orig/misc.c	2012-07-23 08:27:24.000000000 +0800
++++ flex-2.5.37/misc.c	2026-10-01 21:49:42.228813481 +0800
+@@ -411,12 +411,14 @@
+ 
+ /* lerrsf_fatal - as lerrsf, but call flexfatal */
+ 
+-void lerrsf_fatal (msg, arg)
+-	const char *msg, arg[];
++void lerrsf_fatal (const char *msg, ...)
+ {
+ 	char    errmsg[MAXLINE];
++	va_list ap;
+ 
+-	snprintf (errmsg, sizeof(errmsg)-1, msg, arg);
++	va_start (ap, msg);
++	vsnprintf (errmsg, sizeof(errmsg)-1, msg, ap);
++	va_end (ap);
+ 	errmsg[sizeof(errmsg)-1] = 0; /* ensure NULL termination */
+ 	flexfatal (errmsg);
+ }

@@ -1,0 +1,59 @@
+include sys/sysmacros.h for major/minor/makedev
+
+Recent glibc no longer defines the major(), minor() and makedev() macros
+through <sys/types.h>; they live in <sys/sysmacros.h>.  lib/loopdev.c
+already includes it, so add the same include to the remaining users built
+by this configuration.
+
+Signed-off-by: jeep <jeep@local>
+
+--- util-linux-2.26.2.orig/lib/ismounted.c	2015-04-29 15:52:21.960364341 +0800
++++ util-linux-2.26.2/lib/ismounted.c	2026-10-01 19:48:47.631900864 +0800
+@@ -18,6 +18,7 @@
+ #include <sys/stat.h>
+ #include <ctype.h>
+ #include <sys/param.h>
++#include <sys/sysmacros.h>
+ #ifdef __APPLE__
+ #include <sys/ucred.h>
+ #include <sys/mount.h>
+--- util-linux-2.26.2.orig/lib/sysfs.c	2015-04-29 18:36:45.149169921 +0800
++++ util-linux-2.26.2/lib/sysfs.c	2026-10-01 19:48:47.631978638 +0800
+@@ -5,6 +5,7 @@
+  * Written by Karel Zak <kzak@redhat.com>
+  */
+ #include <ctype.h>
++#include <sys/sysmacros.h>
+ 
+ #include "c.h"
+ #include "at.h"
+--- util-linux-2.26.2.orig/login-utils/sulogin-consoles.c	2015-04-29 15:52:21.985364198 +0800
++++ util-linux-2.26.2/login-utils/sulogin-consoles.c	2026-10-01 19:48:47.632070769 +0800
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include <limits.h>
++#include <sys/sysmacros.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+--- util-linux-2.26.2.orig/sys-utils/losetup.c	2015-04-29 18:41:00.680147647 +0800
++++ util-linux-2.26.2/sys-utils/losetup.c	2026-10-01 19:48:47.632150667 +0800
+@@ -5,6 +5,7 @@
+  * losetup.c - setup and control loop devices
+  */
+ #include <assert.h>
++#include <sys/sysmacros.h>
+ #include <stdio.h>
+ #include <string.h>
+ #include <errno.h>
+--- util-linux-2.26.2.orig/disk-utils/sfdisk.c	2015-04-29 18:43:35.696920633 +0800
++++ util-linux-2.26.2/disk-utils/sfdisk.c	2026-10-01 19:48:47.632470280 +0800
+@@ -22,6 +22,7 @@
+  */
+ 
+ #include <unistd.h>
++#include <sys/sysmacros.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>

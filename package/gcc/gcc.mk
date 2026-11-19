@@ -100,6 +100,10 @@ HOST_GCC_COMMON_CONF_OPTS = \
 HOST_GCC_COMMON_CONF_ENV = \
 	MAKEINFO=missing
 
+# GCC 4.9.3 host sources use constructs rejected by the host compiler's
+# default C++17 mode (for example, incrementing a bool expression).
+HOST_GCC_COMMON_CONF_ENV += CXXFLAGS="$(HOST_CXXFLAGS) -std=gnu++11"
+
 GCC_COMMON_TARGET_CFLAGS = $(TARGET_CFLAGS)
 GCC_COMMON_TARGET_CXXFLAGS = $(TARGET_CXXFLAGS)
 

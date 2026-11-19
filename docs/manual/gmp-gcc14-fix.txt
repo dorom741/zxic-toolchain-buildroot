@@ -1,0 +1,41 @@
+[[gmp-gcc14-fix]]
+=== GNU GMP 6.0.0a and modern host GCC
+
+==== Symptom
+
+The +host-gmp+ configure step can fail with:
+
+----
+configure: error: could not find a working compiler, see config.log for details
+----
+
+The relevant preceding test is:
+
+----
+no, long long reliability test 1
+----
+
+==== Cause
+
+Buildroot 2015.08.1 uses GMP 6.0.0a.  Its configure test contains K&R-style
+function definitions and implicit +int+ return types.  GCC 14 diagnoses those
+constructs as errors when compiling in its default +gnu17+ mode, so GMP rejects
+an otherwise working host compiler.
+
+==== Fix
+
++package/gmp/gmp.mk+ sets +GMP_CONF_ENV+ and +HOST_GMP_CONF_ENV+ to use
++-std=gnu89+ for GMP's build-system compiler checks.  GMP 6.0.0a is designed
+to support this language mode.  The setting affects only GMP configure/build
+helpers; the target compiler flags for other packages are unchanged.
+
+To rebuild the package after changing the setting:
+
+----
+make O=/workplace/project/lab/build_target host-gmp-dirclean
+make O=/workplace/project/lab/build_target host-gmp
+----
+
+When upgrading GMP to a release with C23-compatible configure tests, remove
+the host-only override after verifying the newer release with the current host
+compiler.

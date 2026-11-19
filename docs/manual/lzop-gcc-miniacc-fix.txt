@@ -1,0 +1,32 @@
+[[lzop-gcc-miniacc-fix]]
+=== lzop 1.03 and modern host compilers
+
+==== Symptom
+
+Building +host-lzop+ can fail during configure with:
+
+----
+error: variably modified '__acc_cta' at file scope
+configure: error: ACC conformance test failed. Stop.
+----
+
+==== Cause
+
+lzop's bundled +miniacc.h+ uses signed left-shift expressions such as
++((1 << (8*SIZEOF_INT-1)) < 0)+ as compile-time assertions.  Those shifts
+overflow signed types, which GCC 6+ rejects when used as an array bound,
+so the ACC conformance test no longer compiles.
+
+==== Fix
+
++package/lzop/0001-fix-build-with-gcc6-miniacc-signed-shift.patch+ backports
+the OpenEmbedded-Core fix: the shifts are performed in unsigned arithmetic
+and cast back to the signed type, preserving the two's-complement assertions
+without undefined behavior.
+
+To rebuild the host package:
+
+----
+make O=/workplace/project/lab/build_target host-lzop-dirclean
+make O=/workplace/project/lab/build_target host-lzop
+----

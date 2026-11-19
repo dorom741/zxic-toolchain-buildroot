@@ -3,6 +3,34 @@
 
 == Known issues
 
+include::m4-glibc-sigstksz-fix.txt[]
+
+include::gmp-gcc14-fix.txt[]
+
+include::gcc-host-cxx11-fix.txt[]
+
+include::python-glibc-sinpi-fix.txt[]
+
+include::e2fsprogs-glibc-sysmacros-fix.txt[]
+
+include::glib2-gcc-format-fix.txt[]
+
+include::qemu-glibc-sysmacros-fix.txt[]
+
+include::util-linux-glibc-sysmacros-fix.txt[]
+
+include::lzop-gcc-miniacc-fix.txt[]
+
+include::linux-3.4-gcc-compat-fix.txt[]
+
+include::fakeroot-glibc-2.33-fix.txt[]
+
+include::rootfs-fakeroot-script-path-fix.txt[]
+
+include::bison-fseterr-glibc-fix.txt[]
+
+include::flex-implicit-declaration-fix.txt[]
+
 * It is not possible to pass extra linker options via +BR2_TARGET_LDFLAGS+
   if such options contain a +$+ sign. For example, the following is known
   to break: +BR2_TARGET_LDFLAGS="-Wl,-rpath=\'$ORIGIN/../lib'"+
@@ -32,4 +60,3 @@
 
 * The +prboom+ package triggers a compiler failure with the SuperH 4
   compiler from Sourcery CodeBench, version 2012.09.
-

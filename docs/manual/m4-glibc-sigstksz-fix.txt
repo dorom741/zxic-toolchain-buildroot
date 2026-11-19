@@ -1,0 +1,57 @@
+[[m4-glibc-sigstksz-fix]]
+=== GNU m4 1.4.17 and modern glibc hosts
+
+==== Symptom
+
+Building the host package +m4-1.4.17+ can fail in +lib/c-stack.c+ with:
+
+----
+c-stack.c:55:26: error: missing binary operator before token "("
+#elif HAVE_LIBSIGSEGV && SIGSTKSZ < 16384
+----
+
+==== Cause
+
+Buildroot 2015.08.1 uses GNU m4 1.4.17.  With +_GNU_SOURCE+ enabled, newer
+glibc versions may define +SIGSTKSZ+ as the run-time expression
++sysconf (_SC_SIGSTKSZ)+ instead of an integer constant.  GNU m4 1.4.17 uses
+that macro in a preprocessor comparison, where the function-call expression is
+invalid.
+
+==== Fix
+
+The project carries three ordered patches under +package/m4/+:
+
+* +0001-fflush-adjust-to-glibc-2.28-libio.h-removal.patch+;
+* +0002-fflush-be-more-paranoid-about-libio.h-change.patch+; and
+* +0003-c-stack-stop-using-SIGSTKSZ.patch+.
+
+The first two update the bundled gnulib stdio compatibility code for glibc
+2.28 and later.  The third removes the preprocessor and run-time dependence
+on +SIGSTKSZ+ and supplies a statically allocated, correctly aligned 64 KiB
+alternate signal stack.
+Buildroot applies the patch automatically whenever it unpacks +m4-1.4.17+;
+do not edit files below +output/build/+ or +build/+ directly.
+
+==== Verification
+
+After applying the patch, rebuild the host package and then resume the full
+Buildroot build:
+
+----
+make O=/workplace/project/lab/build_target host-m4-dirclean
+make O=/workplace/project/lab/build_target host-m4
+make O=/workplace/project/lab/build_target
+----
+
+To verify that the patches are applied, inspect the package build log or run:
+
+----
+cat /workplace/project/lab/build_target/build/host-m4-1.4.17/.applied_patches_list
+----
+
+==== Future maintenance
+
+GNU m4 1.4.19 and later contain the upstream fix.  If this Buildroot tree is
+upgraded to such a version, remove this backport and update +m4.hash+ with the
+new source checksum rather than applying the patch twice.

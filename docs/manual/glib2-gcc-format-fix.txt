@@ -1,0 +1,31 @@
+[[glib2-gcc-format-fix]]
+=== GLib 2.44.1 and GCC format warnings
+
+==== Symptom
+
+Building +host-libglib2+ can fail in +glib/gdate.c+ with:
+
+----
+error: format not a string literal, format string not checked [-Werror=format-nonliteral]
+----
+
+==== Cause
+
+GLib 2.44.1 passes a runtime locale format string to +strftime()+.  Its
+configure logic enables +-Werror=format-nonliteral+ on current GCC versions,
+so this valid legacy code becomes a hard error.
+
+==== Fix
+
++package/libglib2/0002-gdate-fix-format-nonliteral.patch+ moves the existing
+GCC diagnostic pragma to cover the whole +g_date_strftime()+ function.  It
+only changes warning handling and preserves the implementation behavior.
+The host build also passes +-Wno-error=format-overflow+ so other equivalent
+legacy format checks remain warnings instead of build-stopping errors.
+
+To rebuild the host package:
+
+----
+make O=/workplace/project/lab/build_target host-libglib2-dirclean
+make O=/workplace/project/lab/build_target host-libglib2
+----
